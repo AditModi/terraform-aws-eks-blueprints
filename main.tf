@@ -1,17 +1,4 @@
 # ---------------------------------------------------------------------------------------------------------------------
-# LABELING EKS RESOURCES
-# ---------------------------------------------------------------------------------------------------------------------
-module "eks_tags" {
-  source      = "./modules/aws-resource-tags"
-  org         = var.org
-  tenant      = var.tenant
-  environment = var.environment
-  zone        = var.zone
-  resource    = "eks"
-  tags        = merge(var.tags, { "created-by" = var.terraform_version })
-}
-
-# ---------------------------------------------------------------------------------------------------------------------
 # CLUSTER KMS KEY
 # ---------------------------------------------------------------------------------------------------------------------
 module "kms" {
@@ -22,7 +9,7 @@ module "kms" {
   description             = "${module.eks_tags.id} EKS cluster secret encryption key"
   policy                  = data.aws_iam_policy_document.eks_key.json
   deletion_window_in_days = var.cluster_kms_key_deletion_window_in_days
-  tags                    = module.eks_tags.tags
+  tags                    = var.tags
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -70,7 +57,7 @@ module "aws_eks" {
   custom_oidc_thumbprints  = var.custom_oidc_thumbprints
 
   # TAGS
-  tags = module.eks_tags.tags
+  tags = var.tags
 
   # CLUSTER LOGGING
   create_cloudwatch_log_group            = var.create_cloudwatch_log_group
@@ -142,11 +129,9 @@ module "aws_eks_teams" {
   count  = length(var.application_teams) > 0 || length(var.platform_teams) > 0 ? 1 : 0
   source = "./modules/aws-eks-teams"
 
+  eks_cluster_id    = module.aws_eks.cluster_id
   application_teams = var.application_teams
   platform_teams    = var.platform_teams
-  environment       = var.environment
-  tenant            = var.tenant
-  zone              = var.zone
-  eks_cluster_id    = module.aws_eks.cluster_id
-  tags              = module.eks_tags.tags
+
+  tags = var.tags
 }
